@@ -1,0 +1,134 @@
+[
+  {
+    "category": "我的项目",
+    "items": [
+      {
+        "title": "Mini App",
+        "url": "https://mini.liboqiao.top",
+        "description": "移动应用平台 - 搜索店铺和订单管理系统",
+        "image": "https://sjc.microlink.io/gDQyBDx8CC1J58s_xxMVIDSwd4kHFAg4Ami54bsptPgC73N-ciTOsW14MwJoHV8wZkmwVFeRsuEFQ04ebwSkdg.jpeg",
+        "color": "from-pink-500 to-rose-300",
+        "isTop": true
+      },
+      {
+        "title": "Admin Dashboard",
+        "url": "https://min.admin.liboqiao.top",
+        "description": "管理后台系统",
+        "color": "from-purple-500 to-indigo-300",
+        "isTop": true
+      },
+      {
+        "title": "UMI Project",
+        "url": "https://umi.liboqiao.top/home",
+        "description": "UMI框架开发的应用",
+        "image": "https://sjc.microlink.io/Iwk2UmnCNQGP1weYBB-PQgUc0Uaq8OhRITTeL4zJtACPnl0ljXqvb4v72FgScYjCF1fbdWn6QcbZzK829JDcog.jpeg",
+        "color": "from-blue-500 to-cyan-300",
+        "isTop": true
+      },
+      {
+        "title": "Score Calculator",
+        "url": "https://score.liboqiao.top",
+        "description": "牌局计分器 - 简单易用的计分工具",
+        "image": "https://sjc.microlink.io/87Xxb7FrijLTGB-LNIuI69-_kRwhJphLSCeWTLMnvN7ZTyRsjI-o8NMiI3Wrz9fRfXpYm0Y1oucUwKoJ14nL-A.jpeg",
+        "color": "from-green-500 to-emerald-300",
+        "icon": "Calculator",
+        "isTop": true
+      }
+    ]
+  },
+  {
+    "category": "我的社区",
+    "items": [
+      {
+        "title": "GitHub",
+        "url": "https://github.com/Liboq",
+        "description": "我的开源项目仓库 - 165+ Stars, 69+ Repositories",
+        "image": "https://sjc.microlink.io/PSPvNJEw-r__xjulddWyNeoLxoy3JKdIE98cZVFn4_gVlwlds7l_Depz16F6CIrZMQo1wLfnFQwZ6i-KbAV-dg.jpeg",
+        "color": "from-gray-700 to-gray-900",
+        "icon": "Github",
+        "isTop": false
+      },
+      {
+        "title": "掘金",
+        "url": "https://juejin.cn/user/2960313491129447",
+        "description": "技术博客 - 分享前端开发经验与见解",
+        "image": "https://sjc.microlink.io/bvX04Cv0f4PIGFX0G42-HBu4aBUFva4SkYvtn6GGx3Y2ak5WXC1cBOVFZszEVpWGQ5hPY3LNu32wdS3BGayzGg.jpeg",
+        "color": "from-blue-400 to-cyan-400",
+        "icon": "BookOpen"
+      },
+      {
+        "url": "https://blog.csdn.net/",
+        "title": "CSDN博客-专业IT技术发表平台",
+        "description": "CSDN是全球知名中文IT技术交流平台,创建于1999年,包含原创博客、精品问答、职业培训、技术论坛、资源下载等产品服务,提供原创、优质、完整内容的专业IT技术开发社区.",
+        "image": "/screenshots/1735127984446.png",
+        "color": "from-pink-500 to-rose-300"
+      }
+    ]
+  },
+  {
+    "category": "我喜欢的技术栈",
+    "items": [
+      {
+        "title": "Next.js",
+        "url": "https://nextjs.org/",
+        "description": "React框架，用于构建现代Web应用",
+        "color": "from-blue-400 to-cyan-400",
+        "icon": "Code"
+      },
+      {
+        "title": "Nest.js",
+        "url": "https://nestjs.com/",
+        "description": "用于构建高效、可靠的服务器端应用程序的框架",
+        "color": "from-blue-400 to-cyan-400",
+        "icon": "Code"
+      },
+      {
+        "title": "Prisma",
+        "url": "https://www.prisma.io/",
+        "description": "下一代ORM，用于Node.js和TypeScript",
+        "color": "from-blue-400 to-cyan-400",
+        "icon": "Database"
+      },
+      {
+        "title": "React",
+        "url": "https://reactjs.org/",
+        "description": "用于构建用户界面的JavaScript库",
+        "color": "from-blue-400 to-cyan-500",
+        "icon": "Code"
+      },
+      {
+        "title": "Vue",
+        "url": "https://vuejs.org/",
+        "description": "渐进式JavaScript框架",
+        "color": "from-green-500 to-emerald-700",
+        "icon": "Code"
+      },
+      {
+        "title": "shadcn/ui",
+        "url": "https://ui.shadcn.com/",
+        "description": "精美的UI组件集合",
+        "color": "from-gray-700 to-gray-900",
+        "icon": "Palette"
+      },
+      {
+        "title": "Tailwind CSS",
+        "url": "https://tailwindcss.com/",
+        "description": "功能类优先的CSS框架",
+        "color": "from-gray-700 to-gray-900",
+        "icon": "Palette"
+      }
+    ]
+  },
+  {
+    "category": "爱好",
+    "items": [
+      {
+        "url": "https://v0.dev/",
+        "title": "v0 by Vercel",
+        "description": "Chat with v0. Generate UI with simple text prompts. Copy, paste, ship.",
+        "image": "/screenshots/1735129757879.png",
+        "color": "from-red-500 to-pink-300"
+      }
+    ]
+  }
+]
