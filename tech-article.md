@@ -209,10 +209,15 @@ function getRandomColor() {
 
 ## 相关链接
 
-- [项目源码](https://github.com/Liboq/navigation-website)
-- [在线预览](https://your-site-url)
-- [问题反馈](https://github.com/Liboq/navigation-website/issues)
+- [项目源码](https://github.com/Liboq/navigate-website)
+- [问题反馈](https://github.com/Liboq/navigate-website/issues)
 
 ---
 
 如果你觉得这个项目对你有帮助，欢迎给个 Star ⭐️
+
+## preview
+[预览](https://strong-navigation.vercel.app/)
+
+![image](https://cdn.liboqiao.top/markdown/image-20241225210549759.png)
+![mobile-image](https://cdn.liboqiao.top/markdown/image-20241225210842581.png)

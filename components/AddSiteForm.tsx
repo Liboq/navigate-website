@@ -18,18 +18,17 @@ interface AddSiteFormProps {
     onSubmit: (category: string, url: string) => void;
     categories: string[];
     onAddCategory: (category: string) => void;
+    isLoading: boolean;
 }
 
-export function AddSiteForm({ categories, onSubmit, onAddCategory }: AddSiteFormProps) {
+export function AddSiteForm({ categories, onSubmit, onAddCategory, isLoading }: AddSiteFormProps) {
     const [url, setUrl] = useState('');
     const [category, setCategory] = useState('');
     const [newCategory, setNewCategory] = useState('');
     const [isAddingCategory, setIsAddingCategory] = useState(false);
-    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         try {
             if (isAddingCategory && newCategory) {
                 onAddCategory(newCategory);
@@ -42,10 +41,6 @@ export function AddSiteForm({ categories, onSubmit, onAddCategory }: AddSiteForm
         } catch (error) {
             console.error(error);
             alert('添加失败');
-        } finally {
-            setLoading(false);
-            setUrl('');
-            setCategory('');
         }
     };
 
@@ -133,11 +128,11 @@ export function AddSiteForm({ categories, onSubmit, onAddCategory }: AddSiteForm
                 <div className="flex items-end">
                     <Button
                         type="submit"
-                        disabled={loading || (isAddingCategory ? !newCategory : !category) || (!isAddingCategory && !url)}
+                        disabled={isLoading || (isAddingCategory ? !newCategory : !category) || (!isAddingCategory && !url)}
                         variant="secondary"
                         className="w-full md:w-auto px-4 py-2 bg-green-200 text-white rounded-md hover:bg-green-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                     >
-                        {loading ? '添加中...' : isAddingCategory ? '添加分类' : '添加网站'}
+                        {isLoading ? '添加中...' : isAddingCategory ? '添加分类' : '添加网站'}
                     </Button>
                 </div>
             </form>

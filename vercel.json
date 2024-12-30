@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "app/api/screen/route.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "regions": ["sin1"],
+  "build": {
+    "env": {
+      "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
+    }
+  }
+} 

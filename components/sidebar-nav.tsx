@@ -14,9 +14,10 @@ export function SidebarNav({ categories }: SidebarNavProps) {
 
   useEffect(() => {
     const handleScroll = () => {
-      // 找到当前可见的分类
       for (const category of categories) {
-        const element = document.getElementById(category.replace(/\s+/g, '-').toLowerCase())
+        if (!category) continue;
+        const elementId = category?.replace(/\s+/g, '-').toLowerCase() || '';
+        const element = document.getElementById(elementId);
         if (element) {
           const { top, bottom } = element.getBoundingClientRect()
           if (top <= 150 && bottom >= 150) {
@@ -28,16 +29,17 @@ export function SidebarNav({ categories }: SidebarNavProps) {
     }
 
     window.addEventListener('scroll', handleScroll)
-    handleScroll() // 初始化时执行一次
+    handleScroll()
 
     return () => window.removeEventListener('scroll', handleScroll)
   }, [categories])
 
   const scrollToCategory = (category: string) => {
-    const element = document.getElementById(category.replace(/\s+/g, '-').toLowerCase())
+    if (!category) return;
+    const elementId = category?.replace(/\s+/g, '-').toLowerCase() || '';
+    const element = document.getElementById(elementId);
     if (element) {
-      // 获取导航栏的高度，用于偏移
-      const offset = 80 // 可以根据实际导航栏高度调整
+      const offset = 80
       const elementPosition = element.getBoundingClientRect().top
       const offsetPosition = elementPosition + window.pageYOffset - offset
 

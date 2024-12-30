@@ -1,72 +1,71 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-import { SiteCategory } from '@/types/site';
-
-async function downloadImage(url: string): Promise<string> {
-  try {
-    const response = await fetch(url);
-    const buffer = await response.arrayBuffer();
-    const fileName = `${Date.now()}.png`;
-    const filePath = path.join(process.cwd(), 'public', 'screenshots', fileName);
-    
-    // 确保目录存在
-    await fs.mkdir(path.join(process.cwd(), 'public', 'screenshots'), { recursive: true });
-    
-    // 写入文件
-    await fs.writeFile(filePath, Buffer.from(buffer));
-    return `/screenshots/${fileName}`;
-  } catch (error) {
-    console.error('Error downloading image:', error);
-    throw error;
-  }
-}
+import { kv } from '@/lib/kv';
+import { Site, Category } from '@/types/site';
 
 export async function POST(req: Request) {
   try {
-    const { url, category, image, title, description, color } = await req.json();
+    const { url, categoryName, image, title, description, color } = await req.json();
     
-    // 读取现有数据
-    const sitesPath = path.join(process.cwd(), 'data', 'sites.json');
-    const sites = JSON.parse(await fs.readFile(sitesPath, 'utf-8').catch(() => '[]')) as SiteCategory[];
-    
-    // 检查URL是否已存在
-    const isUrlExists = sites.some(cat => 
-      cat.items.some(item => item.url === url)
-    );
+    // 检查必要的字段
+    if (!url || !categoryName || !image || !title) {
+      return NextResponse.json(
+        { error: '缺少必要的信息' }, 
+        { status: 400 }
+      );
+    }
 
-    if (isUrlExists) {
+    // 检查图片URL是否有效（不是默认图片）
+    if (image === 'https://cdn.liboqiao.top/markdown/image-20241224160126995.png') {
+      return NextResponse.json(
+        { error: '截图获取失败' }, 
+        { status: 400 }
+      );
+    }
+
+    const [sites, categories] = await Promise.all([
+      kv.get<Site[]>('sites') ?? [],
+      kv.get<Category[]>('categories') ?? []
+    ]) as [Site[], Category[]];
+
+    // 检查URL是否已存在
+    if (sites.some(site => site.url === url)) {
       return NextResponse.json(
         { error: '该网站已经添加过了' }, 
         { status: 400 }
       );
     }
-    
-    // 下载图片到本地
-    const localImagePath = await downloadImage(image);
-    
-    // 查找或创建分类
-    let categoryGroup = sites.find(s => s.category === category);
-    if (!categoryGroup) {
-      categoryGroup = { category, items: [] };
-      sites.push(categoryGroup);
+
+    // 查找分类ID
+    const category = categories.find(cat => cat.name === categoryName);
+    if (!category) {
+      return NextResponse.json(
+        { error: '分类不存在' }, 
+        { status: 400 }
+      );
     }
 
     // 添加新网站
-    categoryGroup.items.push({
+    const newSite: Site = {
       url,
       title,
       description,
-      image: localImagePath,
-      color
-    });
+      image,
+      color,
+      categoryId: category.id
+    };
 
-    // 保存更新后的数据
-    await fs.writeFile(sitesPath, JSON.stringify(sites, null, 2));
+    const updatedSites = [...sites, newSite];
+    await kv.set('sites', updatedSites);
     
-    return NextResponse.json(sites);
+    // 返回组织后的数据
+    const organizedData = categories.map(cat => ({
+      category: cat.name,
+      items: updatedSites.filter(site => site.categoryId === cat.id)
+    }));
+
+    return NextResponse.json(organizedData);
   } catch (error) {
-    console.error(error);
+    console.error('Error in scrape API:', error);
     return NextResponse.json({ error: '添加网站失败' }, { status: 500 });
   }
 } 

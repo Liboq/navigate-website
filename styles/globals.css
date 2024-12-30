@@ -64,4 +64,10 @@
     opacity: 0;
   }
 }
+body {
 
+  @apply text-gray-700;
+}
+.card {
+  @apply bg-white/30 backdrop-filter backdrop-blur-lg;
+}

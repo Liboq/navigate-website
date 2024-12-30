@@ -4,13 +4,15 @@ import Image from "next/image"
 import Link from "next/link"
 import { ExternalLink, Heart, Star, Sparkles, Github, Calculator, BookOpen, Code, Database, Palette, LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import TypewriterEffect from "@/components/typewriter-effect"
 import { SidebarNav } from "@/components/sidebar-nav"
-import { SiteCategory } from "@/types/site"
+import { Site } from "@/types/site"
 import { AddSiteForm } from "@/components/AddSiteForm"
+import { Toaster } from "@/components/ui/toast"
 
 // 添加颜色组合数组
 const colorCombinations = [
@@ -33,7 +35,14 @@ function getRandomColor() {
 }
 
 function getScreenshotUrl(url: string) {
-  return `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true`
+  // 使用我们自己的截图服务
+  return fetch('/api/screenshot', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ url })
+  });
 }
 
 const IconMap: Record<string, LucideIcon> = {
@@ -45,14 +54,21 @@ const IconMap: Record<string, LucideIcon> = {
   'Database': Database,
 } as const;
 
+// 修改状态类型
+interface OrganizedData {
+  category: string;
+  items: Site[];
+}
+
 export default function Page() {
-  const [siteData, setSiteData] = useState<SiteCategory[]>([])
+  const [siteData, setSiteData] = useState<OrganizedData[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const categories = siteData.map(category => category.category) || []
 
   const handleAddCategory = async (newCategory: string) => {
     try {
       if (categories.includes(newCategory)) {
-        alert('该分类已存在');
+        toast.error('该分类已存在');
         return;
       }
 
@@ -61,7 +77,7 @@ export default function Page() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ category: newCategory }),
+        body: JSON.stringify({ name: newCategory }),
       });
 
       if (!response.ok) {
@@ -70,88 +86,107 @@ export default function Page() {
 
       const data = await response.json();
       setSiteData(data);
+      toast.success('分类添加成功');
     } catch (error) {
-      alert(error instanceof Error ? error.message : '添加分类失败');
+      console.log(error);
+      toast.error(error instanceof Error ? error.message : '添加分类失败');
     }
   };
 
   const handleUpdateSites = async (category: string, url: string) => {
     try {
-      // 检查是否是新分类
-      if (!categories.includes(category)) {
-        // 如果是新分类，先创建分类
-        const newCategory: SiteCategory = {
-          category,
-          items: []
-        };
-        setSiteData([...siteData, newCategory]);
+      setIsLoading(true);
+      
+      // 先创建一个临时卡片
+      const tempSite = {
+        url,
+        title: '加载中...',
+        description: '正在获取网站信息',
+        image: 'https://cdn.liboqiao.top/markdown/image-20241224160126995.png',
+        color: getRandomColor(),
+        categoryId: category
+      };
+
+      // 立即添加临时卡片
+      const updatedData = [...siteData];
+      const categoryIndex = updatedData.findIndex(cat => cat.category === category);
+      if (categoryIndex !== -1) {
+        updatedData[categoryIndex].items.push(tempSite);
+        setSiteData(updatedData);
       }
 
-      const res = await fetch(getScreenshotUrl(url))
-      const site = await res.json()
-      const response = await fetch('/api/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          url, 
-          category, 
-          image: site.data.screenshot.url, 
-          title: site.data.title, 
-          description: site.data.description,
-          color: getRandomColor()
-        }),
-      });
+      const res = await getScreenshotUrl(url);
+      console.log(res);
+      
+      if (res.ok) {
+        const site = await res.json();
+        const response = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url,
+            categoryName: category,
+            image: site.data.screenshot.url,
+            title: site.data.title,
+            description: site.data.description,
+            color: getRandomColor()
+          }),
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '添加失败');
+        if (!response.ok) {
+          // 移除临时卡片
+          const updatedData = [...siteData];
+          const categoryIndex = updatedData.findIndex(cat => cat.category === category);
+          if (categoryIndex !== -1) {
+            updatedData[categoryIndex].items = updatedData[categoryIndex].items.filter(
+              site => site.title !== '加载中...'
+            );
+            setSiteData(updatedData);
+          }
+          const error = await response.json();
+          throw new Error(error.error || '添加失败');
+        }
+
+        const data = await response.json();
+        setSiteData(data);
+        toast.success('网站添加成功');
+      } else {
+        // 移除临时卡片
+        const updatedData = [...siteData];
+        const categoryIndex = updatedData.findIndex(cat => cat.category === category);
+        if (categoryIndex !== -1) {
+          updatedData[categoryIndex].items = updatedData[categoryIndex].items.filter(
+            site => site.title !== '加载中...'
+          );
+          setSiteData(updatedData);
+        }
+        throw new Error('超时了！请重试');
       }
-
-      const data = await response.json();
-      setSiteData(data);
     } catch (error) {
-      alert(error instanceof Error ? error.message : '添加网站失败');
+      // 确保移除临时卡片
+      const updatedData = [...siteData];
+      const categoryIndex = updatedData.findIndex(cat => cat.category === category);
+      if (categoryIndex !== -1) {
+        updatedData[categoryIndex].items = updatedData[categoryIndex].items.filter(
+          site => site.title !== '加载中...'
+        );
+        setSiteData(updatedData);
+      }
+      toast.error(error instanceof Error ? error.message : '添加网站失败');
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
+
   useEffect(() => {
     // 获取自定义网站
     const fetchCustomSites = async () => {
       const response = await fetch('/api/sites');
       const data = await response.json();
 
-      // 在这里处理截图
-      if (data && data.length > 0) {
-        const updatedSites = await Promise.all(
-          data.map(async (category: SiteCategory) => ({
-            ...category,
-            items: await Promise.all(
-              category.items.map(async (site) => {
-                if (!site.image) {
-                  try {
-                    const response = await fetch(getScreenshotUrl(site.url))
-                    const data = await response.json()
-                    return { 
-                      ...site, 
-                      image: data.data.screenshot.url, 
-                      description: data.data.description,
-                      color: site.color || getRandomColor() // 如果没有颜色就随机选择一个
-                    }
-                  } catch (error) {
-                    console.error(`Failed to fetch screenshot for ${site.url}:`, error)
-                    return site
-                  }
-                }
-                return site
-              })
-            )
-          }))
-        )
-        setSiteData(updatedSites)
-      } else {
-        setSiteData(data)
-      }
+      setSiteData(data)
     }
     fetchCustomSites();
   }, []) // 只在组件挂载时执行一次
@@ -164,9 +199,9 @@ export default function Page() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          category: categoryName, 
-          url: siteUrl 
+        body: JSON.stringify({
+          category: categoryName,
+          url: siteUrl
         }),
       });
 
@@ -176,17 +211,19 @@ export default function Page() {
 
       const data = await response.json();
       setSiteData(data);
+      toast.success('置顶状态已更新');
     } catch (error) {
-      alert(error instanceof Error ? error.message : '操作失败');
+      toast.error(error instanceof Error ? error.message : '操作失败');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-purple-50">
+      <Toaster />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-4 -right-4 w-64 h-64 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full blur-3xl opacity-30 animate-blob" />
-        <div className="absolute top-1/2 -left-4 w-64 h-64 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full blur-3xl opacity-30 animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-4 right-1/2 w-64 h-64 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full blur-3xl opacity-30 animate-blob animation-delay-4000" />
+        <div className="absolute -top-4 -right-4 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-blob"></div>
+        <div className="absolute top-1/2 -left-4 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-blob animation-delay-4000"></div>
       </div>
 
       <SidebarNav categories={categories} />
@@ -209,18 +246,25 @@ export default function Page() {
           </div>
           <TypewriterEffect text="你好！我是Liboq，来自长沙的前端开发工程师，拥有三年开发经验。" />
         </div>
-        <AddSiteForm 
-          onSubmit={handleUpdateSites} 
-          categories={categories} 
+        <AddSiteForm
+          onSubmit={handleUpdateSites}
+          categories={categories}
           onAddCategory={handleAddCategory}
+          isLoading={isLoading}
         />
 
         {siteData.map((category) => (
-          <div key={category.category} id={category.category.replace(/\s+/g, '-').toLowerCase()} className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">{category.category}</h2>
+          <div
+            key={category.category}
+            id={category.category?.replace(/\s+/g, '-').toLowerCase() || ''}
+            className="mb-12"
+          >
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">
+              {category.category || '未分类'}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {category.items
-                .sort((a, b) => {
+                ?.sort((a: Site, b: Site) => {
                   if (a.isTop === b.isTop) return 0;
                   return a.isTop ? -1 : 1;
                 })
@@ -228,12 +272,13 @@ export default function Page() {
                   <Card
                     key={site.url}
                     className={cn(
-                      "group relative overflow-hidden rounded-xl border-none shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2",
-                      site.isTop && "ring-2 ring-pink-500"
+                      "group relative overflow-hidden rounded-2xl border-none shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:rotate-1",
+                      site.isTop && "ring-2 ring-pink-500",
+                      isLoading && site.title === '加载中...' && "animate-pulse opacity-70"
                     )}
                   >
                     <div className={cn(
-                      "absolute inset-0 bg-gradient-to-br opacity-80",
+                      "absolute inset-0 bg-gradient-to-br opacity-90",
                       site.color
                     )} />
 
@@ -253,7 +298,7 @@ export default function Page() {
                       <div className="flex items-center gap-3 mb-3">
                         {site.icon && (() => {
                           const Icon = IconMap[site.icon];
-                          return Icon ? <Icon className="w-6 h-6 text-white" /> : null;
+                          return Icon ? <Icon className="w-8 h-8 text-white animate-bounce" /> : null;
                         })()}
                         <CardTitle className="text-2xl font-bold text-white">
                           {site.title}
@@ -267,28 +312,33 @@ export default function Page() {
                         href={site.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors backdrop-blur-sm"
+                        className={cn(
+                          "inline-flex items-center px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors backdrop-blur-sm",
+                          isLoading && "pointer-events-none opacity-50"
+                        )}
                       >
-                        访问网站
+                        {isLoading ? '加载中...' : '访问网站'}
                         <ExternalLink className="ml-2 h-4 w-4" />
                       </Link>
                     </CardFooter>
 
-                    <div className="absolute top-3 right-3 flex gap-2">
-                      <button
-                        onClick={() => handleToggleTop(category.category, site.url)}
-                        className="bg-white/20 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transform group-hover:rotate-12 transition-all duration-300"
-                      >
-                        {site.isTop ? (
-                          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        ) : (
-                          <Star className="w-4 h-4 text-white" />
-                        )}
-                      </button>
-                      <div className="bg-white/20 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transform group-hover:rotate-12 transition-all duration-300">
-                        <Heart className="w-4 h-4 text-white" />
+                    {!isLoading && (
+                      <div className="absolute top-3 right-3 flex gap-2">
+                        <button
+                          onClick={() => handleToggleTop(category.category, site.url)}
+                          className="bg-white/20 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transform group-hover:rotate-12 transition-all duration-300"
+                        >
+                          {site.isTop ? (
+                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                          ) : (
+                            <Star className="w-4 h-4 text-white" />
+                          )}
+                        </button>
+                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transform group-hover:rotate-12 transition-all duration-300">
+                          <Heart className="w-4 h-4 text-white" />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </Card>
                 ))}
             </div>

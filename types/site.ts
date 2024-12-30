@@ -6,9 +6,18 @@ export interface Site {
   color: string;
   icon?: string;
   isTop?: boolean;
+  categoryId: string;
 }
 
-export interface SiteCategory {
-  category: string;
-  items: Site[];
+export interface Category {
+  id: string;
+  name: string;
+  order?: number;
+}
+
+export interface Screenshot {
+  id: string;
+  siteUrl: string;
+  imageData: string;
+  createdAt: string;
 }

@@ -1,27 +1,50 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-import { SiteCategory } from '@/types/site';
+import { kv } from '@/lib/kv';
+import { Site, Category } from '@/types/site';
 
 export async function POST(req: Request) {
   try {
-    const { category, url } = await req.json();
-    const sitesPath = path.join(process.cwd(), 'data', 'sites.json');
-    const sites = JSON.parse(await fs.readFile(sitesPath, 'utf-8').catch(() => '[]')) as SiteCategory[];
+    const { categoryName, url } = await req.json();
+    const [sites, categories] = await Promise.all([
+      kv.get<Site[]>('sites') ?? [],
+      kv.get<Category[]>('categories') ?? []
+    ]) as [Site[], Category[]];
 
     // 查找并更新置顶状态
-    const categoryGroup = sites.find(s => s.category === category);
-    if (categoryGroup) {
-      const site = categoryGroup.items.find(item => item.url === url);
-      if (site) {
-        site.isTop = !site.isTop;
-      }
+    const category = categories.find(cat => cat.name === categoryName);
+    if (!category) {
+      return NextResponse.json(
+        { error: '分类不存在' }, 
+        { status: 400 }
+      );
     }
 
-    // 保存更新后的数据
-    await fs.writeFile(sitesPath, JSON.stringify(sites, null, 2));
-    
-    return NextResponse.json(sites);
+    const siteIndex = sites.findIndex(site => 
+      site.url === url && site.categoryId === category.id
+    );
+
+    if (siteIndex !== -1) {
+      const updatedSites = [...sites];
+      updatedSites[siteIndex] = {
+        ...updatedSites[siteIndex],
+        isTop: !updatedSites[siteIndex].isTop
+      };
+      
+      await kv.set('sites', updatedSites);
+
+      // 返回组织后的数据
+      const organizedData = categories.map(cat => ({
+        category: cat.name,
+        items: updatedSites.filter(site => site.categoryId === cat.id)
+      }));
+
+      return NextResponse.json(organizedData);
+    }
+
+    return NextResponse.json(
+      { error: '网站不存在' }, 
+      { status: 400 }
+    );
   } catch {
     return NextResponse.json({ error: '操作失败' }, { status: 500 });
   }
