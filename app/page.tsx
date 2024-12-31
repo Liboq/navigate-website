@@ -1,48 +1,29 @@
 'use client'
 
-import Image from "next/image"
-import Link from "next/link"
-import { ExternalLink, Heart, Star, Sparkles, Github, Calculator, BookOpen, Code, Database, Palette, LucideIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { useEffect, useState } from 'react';
+import { Card, CardFooter, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AddSiteForm } from '@/components/AddSiteForm';
+import { SidebarNav } from '@/components/sidebar-nav';
+import { cn } from '@/lib/utils';
+import { Database, Calculator, Code, ExternalLink, Github, LucideIcon, Star, Palette, BookOpen, Heart, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { Toaster } from '@/components/ui/toast';
+import { toast } from 'sonner';
+import { Site } from '@/types/site';
+import {
+  getScreen,
+  uploadScreen,
+  addSite,
+  addCategory,
+  toggleSiteTop,
+  getSites
+} from '@/service';
+import Image from 'next/image';
+import TypewriterEffect from '@/components/typewriter-effect';
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
-import TypewriterEffect from "@/components/typewriter-effect"
-import { SidebarNav } from "@/components/sidebar-nav"
-import { Site } from "@/types/site"
-import { AddSiteForm } from "@/components/AddSiteForm"
-import { Toaster } from "@/components/ui/toast"
-
-// 添加颜色组合数组
-const colorCombinations = [
-  "from-pink-500 to-rose-300",
-  "from-purple-500 to-indigo-300",
-  "from-blue-500 to-cyan-300",
-  "from-green-500 to-emerald-300",
-  "from-yellow-500 to-orange-300",
-  "from-red-500 to-pink-300",
-  "from-indigo-500 to-purple-300",
-  "from-gray-700 to-gray-900",
-  "from-blue-400 to-cyan-400",
-  "from-teal-500 to-green-300",
-] as const;
-
-// 获取随机颜色组合的函数
-function getRandomColor() {
-  const randomIndex = Math.floor(Math.random() * colorCombinations.length);
-  return colorCombinations[randomIndex];
-}
-
-function getScreenshotUrl(url: string) {
-  // 使用我们自己的截图服务
-  return fetch('/api/screenshot', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ url })
-  });
+interface OrganizedData {
+  category: string;
+  items: Site[];
 }
 
 const IconMap: Record<string, LucideIcon> = {
@@ -54,50 +35,39 @@ const IconMap: Record<string, LucideIcon> = {
   'Database': Database,
 } as const;
 
-// 修改状态类型
-interface OrganizedData {
-  category: string;
-  items: Site[];
+function getRandomColor() {
+  const colors = [
+    'from-pink-500 to-rose-500',
+    'from-purple-500 to-indigo-500',
+    'from-blue-500 to-cyan-500',
+    'from-green-500 to-emerald-500',
+    'from-yellow-500 to-orange-500',
+    'from-red-500 to-pink-500',
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
 }
 
 export default function Page() {
-  const [siteData, setSiteData] = useState<OrganizedData[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const categories = siteData.map(category => category.category) || []
+  const [siteData, setSiteData] = useState<OrganizedData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAddCategory = async (newCategory: string) => {
+  useEffect(() => {
+    loadSites();
+  }, []);
+
+  const loadSites = async () => {
     try {
-      if (categories.includes(newCategory)) {
-        toast.error('该分类已存在');
-        return;
-      }
-
-      const response = await fetch('/api/sites/category', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: newCategory }),
-      });
-
-      if (!response.ok) {
-        throw new Error('添加分类失败');
-      }
-
-      const data = await response.json();
+      const data = await getSites();
       setSiteData(data);
-      toast.success('分类添加成功');
-    } catch (error) {
-      console.log(error);
-      toast.error(error instanceof Error ? error.message : '添加分类失败');
+    } catch {
+      toast.error('加载网站列表失败');
     }
   };
 
   const handleUpdateSites = async (category: string, url: string) => {
     try {
       setIsLoading(true);
-      
-      // 先创建一个临时卡片
+
       const tempSite = {
         url,
         title: '加载中...',
@@ -107,7 +77,6 @@ export default function Page() {
         categoryId: category
       };
 
-      // 立即添加临时卡片
       const updatedData = [...siteData];
       const categoryIndex = updatedData.findIndex(cat => cat.category === category);
       if (categoryIndex !== -1) {
@@ -115,57 +84,34 @@ export default function Page() {
         setSiteData(updatedData);
       }
 
-      const res = await getScreenshotUrl(url);
-      console.log(res);
-      
+      const res = await getScreen(url);
       if (res.ok) {
         const site = await res.json();
-        const response = await fetch('/api/scrape', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        const uploadRes = await uploadScreen({
+          screenshot: site.screenshot,
+          title: site.title,
+          description: site.description,
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          const newSiteData = await addSite({
             url,
             categoryName: category,
-            image: site.data.screenshot.url,
-            title: site.data.title,
-            description: site.data.description,
+            image: uploadData.screenshot.url,
+            title: uploadData.title,
+            description: uploadData.description,
             color: getRandomColor()
-          }),
-        });
-
-        if (!response.ok) {
-          // 移除临时卡片
-          const updatedData = [...siteData];
-          const categoryIndex = updatedData.findIndex(cat => cat.category === category);
-          if (categoryIndex !== -1) {
-            updatedData[categoryIndex].items = updatedData[categoryIndex].items.filter(
-              site => site.title !== '加载中...'
-            );
-            setSiteData(updatedData);
-          }
-          const error = await response.json();
-          throw new Error(error.error || '添加失败');
+          });
+          setSiteData(newSiteData);
+          toast.success('添加成功');
+        } else {
+          toast.error('上传截图失败');
         }
 
-        const data = await response.json();
-        setSiteData(data);
-        toast.success('网站添加成功');
-      } else {
-        // 移除临时卡片
-        const updatedData = [...siteData];
-        const categoryIndex = updatedData.findIndex(cat => cat.category === category);
-        if (categoryIndex !== -1) {
-          updatedData[categoryIndex].items = updatedData[categoryIndex].items.filter(
-            site => site.title !== '加载中...'
-          );
-          setSiteData(updatedData);
-        }
-        throw new Error('超时了！请重试');
       }
     } catch (error) {
-      // 确保移除临时卡片
+      toast.error(error instanceof Error ? error.message : '添加网站失败');
+      // 移除临时卡片
       const updatedData = [...siteData];
       const categoryIndex = updatedData.findIndex(cat => cat.category === category);
       if (categoryIndex !== -1) {
@@ -174,42 +120,24 @@ export default function Page() {
         );
         setSiteData(updatedData);
       }
-      toast.error(error instanceof Error ? error.message : '添加网站失败');
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    // 获取自定义网站
-    const fetchCustomSites = async () => {
-      const response = await fetch('/api/sites');
-      const data = await response.json();
-
-      setSiteData(data)
+  const handleAddCategory = async (newCategory: string) => {
+    try {
+      const data = await addCategory(newCategory);
+      setSiteData(data);
+      toast.success('分类添加成功');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '添加分类失败');
     }
-    fetchCustomSites();
-  }, []) // 只在组件挂载时执行一次
+  };
 
-  // 添加置顶处理函数
   const handleToggleTop = async (categoryName: string, siteUrl: string) => {
     try {
-      const response = await fetch('/api/sites/toggle-top', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          category: categoryName,
-          url: siteUrl
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('操作失败');
-      }
-
-      const data = await response.json();
+      const data = await toggleSiteTop(categoryName, siteUrl);
       setSiteData(data);
       toast.success('置顶状态已更新');
     } catch (error) {
@@ -226,7 +154,7 @@ export default function Page() {
         <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-blob animation-delay-4000"></div>
       </div>
 
-      <SidebarNav categories={categories} />
+      <SidebarNav categories={siteData.map(item => item.category)} />
 
       <main className="relative transition-all duration-300 px-4 py-12
         md:ml-64 // 桌面端左边距
@@ -248,7 +176,7 @@ export default function Page() {
         </div>
         <AddSiteForm
           onSubmit={handleUpdateSites}
-          categories={categories}
+          categories={siteData.map(item => item.category)}
           onAddCategory={handleAddCategory}
           isLoading={isLoading}
         />
@@ -256,11 +184,11 @@ export default function Page() {
         {siteData.map((category) => (
           <div
             key={category.category}
-            id={category.category?.replace(/\s+/g, '-').toLowerCase() || ''}
+            id={category.category.replace(/\s+/g, '-').toLowerCase()}
             className="mb-12"
           >
             <h2 className="text-2xl font-bold mb-6 text-gray-800">
-              {category.category || '未分类'}
+              {category.category}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {category.items
@@ -346,6 +274,6 @@ export default function Page() {
         ))}
       </main>
     </div>
-  )
+  );
 }
 
