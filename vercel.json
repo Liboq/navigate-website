@@ -3,6 +3,10 @@
     "app/api/screen/route.ts": {
       "memory": 1024,
       "maxDuration": 60
+    },
+    "app/api/screenshot/route.ts": {
+      "memory": 1024,
+      "maxDuration": 60
     }
   },
   "regions": ["sin1"],

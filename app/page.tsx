@@ -20,6 +20,7 @@ import {
 } from '@/service';
 import Image from 'next/image';
 import TypewriterEffect from '@/components/typewriter-effect';
+import { SearchEngines } from '@/components/search-engines';
 
 interface OrganizedData {
   category: string;
@@ -45,6 +46,9 @@ function getRandomColor() {
     'from-red-500 to-pink-500',
   ];
   return colors[Math.floor(Math.random() * colors.length)];
+}
+function getRandomIcon() {
+  return Object.keys(IconMap)[Math.floor(Math.random() * Object.keys(IconMap).length)];
 }
 
 export default function Page() {
@@ -100,7 +104,8 @@ export default function Page() {
             image: uploadData.screenshot.url,
             title: uploadData.title,
             description: uploadData.description,
-            color: getRandomColor()
+            color: getRandomColor(),
+            icon: getRandomIcon().toString()
           });
           setSiteData(newSiteData);
           toast.success('添加成功');
@@ -174,6 +179,9 @@ export default function Page() {
           </div>
           <TypewriterEffect text="你好！我是Liboq，来自长沙的前端开发工程师，拥有三年开发经验。" />
         </div>
+        <div className="mb-16">
+          <SearchEngines />
+        </div>
         <AddSiteForm
           onSubmit={handleUpdateSites}
           categories={siteData.map(item => item.category)}
@@ -224,10 +232,10 @@ export default function Page() {
 
                     <CardContent className="relative p-6">
                       <div className="flex items-center gap-3 mb-3">
-                        {site.icon && (() => {
+                        {site.icon ? (() => {
                           const Icon = IconMap[site.icon];
                           return Icon ? <Icon className="w-8 h-8 text-white animate-bounce" /> : null;
-                        })()}
+                        })() : <Palette className="w-8 h-8 text-white animate-bounce" />}
                         <CardTitle className="text-2xl font-bold text-white">
                           {site.title}
                         </CardTitle>

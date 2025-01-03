@@ -4,7 +4,7 @@ import { Site, Category } from '@/types/site';
 
 export async function POST(req: Request) {
   try {
-    const { url, categoryName, image, title, description, color } = await req.json();
+    const { url, categoryName, image, title, description, color, icon } = await req.json();
     
     // 检查必要的字段
     if (!url || !categoryName || !image || !title) {
@@ -51,7 +51,8 @@ export async function POST(req: Request) {
       description,
       image,
       color,
-      categoryId: category.id
+      categoryId: category.id,
+      icon: icon
     };
 
     const updatedSites = [...sites, newSite];

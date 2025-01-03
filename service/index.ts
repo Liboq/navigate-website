@@ -37,6 +37,7 @@ export async function addSite(params: {
   title: string;
   description: string;
   color: string;
+  icon: string;
 }) {
   try {
     const response = await fetch('/api/scrape', {
